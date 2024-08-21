@@ -1,0 +1,55 @@
+---
+- name: Network Upgrade Check
+  hosts: switches
+  gather_facts: no
+  tasks:
+    - name: Verify New Packages and Image after reload
+      ios_command:
+        commands:
+          - dir flash:*.pkg
+      register: packages_output
+
+    - name: Check Version and New Bootloader
+      ios_command:
+        commands:
+          - show version
+      register: version_output
+
+    - name: Check BGP Status
+      ios_command:
+        commands:
+          - show ip bgp all summary
+      register: bgp_output
+
+    - name: Compare Route Table
+      ios_command:
+        commands:
+          - show ip route
+      register: route_output
+
+    - name: Check IPSec VPN Status
+      ios_command:
+        commands:
+          - show crypto isakmp sa
+      register: vpn_output
+
+    - name: Save Command Outputs for Comparison
+      ios_command:
+        commands:
+          - show interfaces status | ex notconnect
+          - show cdp neigh
+          - show ip ospf neigh
+          - show ip arp
+          - show ip bgp all summary
+      register: comparison_outputs
+
+    - name: Store Output in a File
+      copy:
+        content: |
+          Packages Output: {{ packages_output.stdout }}
+          Version Output: {{ version_output.stdout }}
+          BGP Output: {{ bgp_output.stdout }}
+          Route Table Output: {{ route_output.stdout }}
+          VPN Status Output: {{ vpn_output.stdout }}
+          Command Comparison Outputs: {{ comparison_outputs.stdout }}
+        dest: /path/to/output/file.txt
